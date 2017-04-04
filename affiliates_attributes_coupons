@@ -1,0 +1,52 @@
+add_shortcode( 'affiliates_attributes_coupons', 'affiliates_attributes_coupons' );
+function affiliates_attributes_coupons() {
+	if( !class_exists( 'WC_Coupon' ) ) {
+		return;
+	}
+	global $affiliates_db;
+	
+	$affiliate_id = Affiliates_Affiliate_WordPress::get_user_affiliate_id();
+	$attr_key = 'coupons';
+	$output = '';
+	
+	$affiliates_attributes_table = $affiliates_db->get_tablename( 'affiliates_attributes' );
+	$affiliates_attributes_coupons = $affiliates_db->get_objects( "SELECT attr_value FROM $affiliates_attributes_table WHERE affiliate_id = %d AND attr_key = %s", $affiliate_id, $attr_key );
+	
+	if ( !empty( $affiliates_attributes_coupons ) ) {
+		$output = '<h3>Affiliates Attributes Coupons Details</h3>';
+		$coupon_codes = explode( ",", $affiliates_attributes_coupons[0] -> attr_value );
+		foreach( $coupon_codes as $coupon_code ) {			
+			$coupon = new WC_Coupon( $coupon_code );
+			$output .= '<br />';
+			$output .= '<strong>Coupon Code: </strong>';
+			$output .= $coupon_code ;
+			$output .= '<br />';
+			if ( $coupon -> get_id() == 0 ) {
+				$output .= '<strong>Warning: </strong>This coupon is assigned to an affiliate but it is not valid in the e-Commerce System.';	
+				$output .= '<br />';
+			} else {
+				$output .= '<strong>Coupon Discount: </strong>';
+				switch ( $coupon -> get_discount_type() ) {
+					case 'percent' :
+						$amount_suffix = '% Cart Discount';
+						break;
+					case 'percent_product' :
+						$amount_suffix = '% Product Discount';
+						break;
+					case 'fixed_cart' :
+						$woo_currency_symbol = get_woocommerce_currency_symbol( get_option( 'woocommerce_currency' ) );
+						$amount_suffix = $woo_currency_symbol . ' Cart Discount';
+						break;
+					case 'fixed_product' :
+						$amount_suffix = ' Product Discount';
+						break;
+				}
+				$output .= $coupon -> get_amount();
+				$output .= $amount_suffix;
+				$output .= '<br />';
+			}					
+		}
+	}
+	
+	return $output;
+}
